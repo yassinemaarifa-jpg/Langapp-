@@ -1,0 +1,15 @@
+{
+  "name": "langapp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Language learning app (Android wrapper built with Capacitor)",
+  "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor-community/admob": "^8.2.1",
+    "@capgo/capacitor-speech-recognition": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.0"
+  }
+}
