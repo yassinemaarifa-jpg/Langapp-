@@ -1,0 +1,73 @@
+name: Build Android debug APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - app.html
+      - package.json
+      - capacitor.config.json
+      - .github/workflows/android.yml
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Prepare web assets (real-ads mode for the native app)
+        run: |
+          mkdir -p www
+          sed 's/mode:"demo"/mode:"admob"/' app.html > www/index.html
+          grep -q 'mode:"admob"' www/index.html
+
+      - name: Create Android project
+        run: npx cap add android
+
+      - name: Patch AndroidManifest (test AdMob app id, microphone, speech services)
+        run: |
+          python3 - <<'PY'
+          p = "android/app/src/main/AndroidManifest.xml"
+          s = open(p, encoding="utf-8").read()
+          top = (
+              '    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n'
+              '    <queries>\n'
+              '        <intent><action android:name="android.speech.RecognitionService" /></intent>\n'
+              '        <intent><action android:name="android.intent.action.TTS_SERVICE" /></intent>\n'
+              '    </queries>\n'
+          )
+          meta = (
+              '        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID"'
+              ' android:value="ca-app-pub-3940256099942544~3347511713" />\n'
+          )
+          assert "<application" in s and "</application>" in s
+          s = s.replace("<application", top + "    <application", 1)
+          s = s.replace("</application>", meta + "    </application>", 1)
+          open(p, "w", encoding="utf-8").write(s)
+          PY
+
+      - name: Sync plugins
+        run: npx cap sync android
+
+      - name: Build debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
