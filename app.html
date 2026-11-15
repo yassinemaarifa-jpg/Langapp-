@@ -68,6 +68,8 @@ function sh(a){return a.slice().sort(function(){return Math.random()-.5})}
 function cur(){return D.filter(function(x){return x.id===S.id})[0]}
 function toast(t){var x=document.getElementById("toast");x.textContent=t;x.style.display="block";clearTimeout(toast.k);toast.k=setTimeout(function(){x.style.display="none"},7000)}
 function speak(t,l){
+  var tts=nativePlugin("TextToSpeech");
+  if(tts){tts.speak({text:t,lang:l==="fr"?"fr-FR":"en-US",rate:0.9,pitch:1,volume:1}).catch(function(){toast("تعذّر تشغيل الصوت. رفع صوت الوسائط وثبّت صوت "+(l==="fr"?"الفرنسية":"الإنجليزية")+" من إعدادات تحويل النص إلى كلام.")});return}
   if(!("speechSynthesis" in window)){toast("النطق الصوتي غير مدعوم في هذه البيئة. افتح الصفحة في متصفح Chrome.");return}
   try{
     var c=l==="fr"?"fr":"en",n=l==="fr"?"الفرنسية":"الإنجليزية",u=new SpeechSynthesisUtterance(t),vs=speechSynthesis.getVoices();
@@ -98,7 +100,8 @@ function listen(L){
   r.onend=function(){if(S.res==="جارٍ الاستماع…"){S.res="لم أسمع شيئًا. اقترب من الميكروفون وأعد المحاولة.";render()}};
   try{r.start()}catch(x){S.res="تعذّر تشغيل الميكروفون.";render()}
 }
-function stats(){var n=D.filter(function(x){return P[x.id]!=null}).length,t=D.length,td=new Date().toDateString(),yd=new Date(Date.now()-864e5).toDateString(),s=(P._d===td||P._d===yd)?(P._s||0):0,sr=window.SpeechRecognition||window.webkitSpeechRecognition;return '<div class="box"><div class="row"><span>🔥 '+s+' يوم متتالٍ</span><span>⭐ '+(P._x||0)+' نقطة</span></div><div class="bar"><i style="width:'+Math.round(n/t*100)+'%"></i></div><p class="m" style="margin:.4rem 0 0">أنجزت '+n+' من '+t+' درسًا</p></div>'+(sr?'':'<p class="m">للمحادثة بالميكروفون افتح الصفحة في متصفح Chrome.</p>')}
+function dstr(n){var x=new Date(Date.now()-n*864e5);return x.getFullYear()+"-"+(x.getMonth()+1)+"-"+x.getDate()}
+function stats(){var n=D.filter(function(x){return P[x.id]!=null}).length,t=D.length,td=dstr(0),yd=dstr(1),s=(P._d===td||P._d===yd)?(P._s||0):0,sr=window.SpeechRecognition||window.webkitSpeechRecognition||nativePlugin("SpeechRecognition")||nativePlugin("CapacitorSpeechRecognition");return '<div class="box"><div class="row"><span>🔥 '+s+' يوم متتالٍ</span><span>⭐ '+(P._x||0)+' نقطة</span></div><div class="bar"><i style="width:'+Math.round(n/t*100)+'%"></i></div><p class="m" style="margin:.4rem 0 0">أنجزت '+n+' من '+t+' درسًا</p></div>'+(sr?'':'<p class="m">للمحادثة بالميكروفون افتح الصفحة في متصفح Chrome.</p>')}
 function home(){
   var h='<span class="tag">نسخة تجريبية</span><h1>تعلّم الإنجليزية والفرنسية</h1><p>درس قواعد، ثم تمارين، ثم نطق.</p>'+stats()+'<div class="tabs"><button data-a="tab" data-v="fr" class="'+(S.tab==="fr"?"on":"")+'">الفرنسية</button><button data-a="tab" data-v="en" class="'+(S.tab==="en"?"on":"")+'">الإنجليزية</button></div>';
   D.filter(function(x){return x.l===S.tab}).forEach(function(x){
@@ -186,7 +189,7 @@ A.onclick=function(e){
   else if(a==="login"||a==="signup"){doAuth(a);return}
   else if(a==="logout"){clearSess();S.am=""}
   else if(a==="delacct"){if(!S.cf){S.cf=true}else{sbFetch("/rest/v1/rpc/delete_my_account",{method:"POST",body:"{}"}).then(function(r){if(!r.ok)throw 0;clearSess();S.am="تم حذف الحساب.";S.cf=false}).catch(function(){S.am="تعذّر الحذف. حاول لاحقًا."}).then(render);return}}
-  else if(a==="done"){S.st="end";if(P[L.id]==null||P[L.id]<S.sc){P[L.id]=S.sc}P._x=(P._x||0)+10*S.sc+5;var d=new Date().toDateString();if(P._d!==d){var y=new Date(Date.now()-864e5).toDateString();P._s=(P._d===y?(P._s||0):0)+1;P._d=d}save();sync()}
+  else if(a==="done"){S.st="end";if(P[L.id]==null||P[L.id]<S.sc){P[L.id]=S.sc}P._x=(P._x||0)+10*S.sc+5;var d=dstr(0);if(P._d!==d){var y=dstr(1);P._s=(P._d===y?(P._s||0):0)+1;P._d=d}save();sync()}
   render();
 };
 initAds();
